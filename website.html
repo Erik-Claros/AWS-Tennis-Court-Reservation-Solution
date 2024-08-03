@@ -23,12 +23,19 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 800px; /* Adjusted width to accommodate image */
+            width: 800px;
             gap: 20px;
+            flex-direction: column;
         }
 
         .form-container {
-            flex: 1;
+            display: none; /* Hidden initially */
+            width: 100%;
+        }
+
+        .manage-bookings-container {
+            display: none; /* Hidden initially */
+            width: 100%;
         }
 
         h1, h3 {
@@ -42,7 +49,16 @@
             color: #555;
         }
 
+        input[type="text"],
         input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        select {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
@@ -64,7 +80,7 @@
             background-color: #fff;
             cursor: pointer;
             text-align: center;
-            flex: 1 1 calc(33% - 20px); /* Adjust based on the number of slots per row */
+            flex: 1 1 calc(33% - 20px);
             box-sizing: border-box;
         }
 
@@ -99,26 +115,85 @@
             display: none;
         }
 
+        .error-message {
+            color: #d9534f;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
         .image-container img {
             max-width: 100%;
             height: auto;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
+        .button-group {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        .booking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .booking-details {
+            flex: 1;
+        }
+
+        .manage-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .manage-buttons button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .manage-buttons button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="form-container">
-            <h1>Louisiana Tech Tennis Complex</h1>
-            <div class="image-container">
-                <img src="tenniscourts.png" alt="Tennis Court Image">
-            </div>
+        <h1>Louisiana Tech Tennis Complex</h1>
+        <div class="image-container">
+            <img src="tenniscourts.png" alt="Tennis Court Image">
+        </div>
+        
+        <div class="button-group">
+            <button onclick="showMakeBooking()">New Booking</button>
+            <button onclick="showManageBookings()">Manage My Bookings</button>
+        </div>
+
+        <div class="form-container" id="make-booking">
             <h3>Tennis Court Booking</h3>
 
+            <label for="student-id">Student ID:</label>
+            <input type="text" id="student-id" placeholder="Enter your student ID" oninput="validateStudentId()" required>
+            <div id="student-id-error" class="error-message"></div>
 
             <label for="court-select">Select Court:</label>
             <select id="court-select" onchange="updateAvailableTimes()">
+                <option value="">-- Select Court --</option>
                 <option value="Court 1">Court 1</option>
                 <option value="Court 2">Court 2</option>
                 <option value="Court 3">Court 3</option>
@@ -128,22 +203,35 @@
                 <option value="Court 7">Court 7</option>
                 <option value="Court 8">Court 8</option>
             </select>
+            <div id="court-error" class="error-message"></div>
 
             <label for="booking-date">Select Date:</label>
             <input type="date" id="booking-date" onchange="updateAvailableTimes()" required>
+            <div id="date-error" class="error-message"></div>
 
+            <h4>Available Times:</h4>
             <div id="booking-time-container" class="time-slot-container">
                 <!-- Time slots will be populated here -->
             </div>
 
-            <button id="book-now" onclick="bookCourt()">Book Now</button>
+            <button id="book-now" onclick="bookCourt()" disabled>Book Now</button>
 
             <div id="booking-confirmation" class="booking-confirmation">
                 <strong>Success!</strong> Your booking is confirmed for <span id="confirmed-court"></span> on <span id="confirmed-date"></span> at <span id="confirmed-time"></span>.
             </div>
         </div>
 
-        
+        <div class="manage-bookings-container" id="manage-bookings">
+            <h3>Manage My Bookings</h3>
+
+            <label for="manage-student-id">Enter Student ID:</label>
+            <input type="text" id="manage-student-id" placeholder="Enter your student ID to view bookings" oninput="fetchBookings()">
+            <div id="manage-student-id-error" class="error-message"></div>
+
+            <div id="booking-list">
+                <!-- Active bookings will be displayed here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -159,45 +247,114 @@
             "Court 8": ["08:00", "09:00", "11:00", "13:00", "15:00", "17:00"]
         };
 
-        function updateAvailableTimes() {
-            var selectedCourt = document.getElementById("court-select").value;
-            var bookingDate = document.getElementById("booking-date").value;
-            var timeSlotContainer = document.getElementById("booking-time-container");
-            timeSlotContainer.innerHTML = ""; // Clear previous options
+        // Simulated booking data for demonstration purposes
+        var bookingData = {
+            "10395573": [
+                { court: "Court 1", date: "2024-08-05", time: "08:00" },
+                { court: "Court 3", date: "2024-08-07", time: "10:00" }
+            ],
+            "10395574": [
+                { court: "Court 2", date: "2024-08-06", time: "09:00" }
+            ]
+        };
 
-            if (bookingDate === "") return; // Do nothing if date is not selected
+        // List of valid student IDs
+        var validStudentIds = ["10395573", "10395574", "10395575"];
 
-            var availableTimes = availabilityData[selectedCourt];
-
-            availableTimes.forEach(function(time) {
-                var timeSlot = document.createElement("div");
-                timeSlot.className = "time-slot";
-                timeSlot.textContent = time + " - " + formatEndTime(time);
-                timeSlot.dataset.time = time;
-                timeSlot.onclick = function() {
-                    var previouslySelected = document.querySelector(".time-slot.selected");
-                    if (previouslySelected) previouslySelected.classList.remove("selected");
-                    timeSlot.classList.add("selected");
-                    document.getElementById("book-now").disabled = false;
-                };
-                timeSlotContainer.appendChild(timeSlot);
-            });
-
-            document.getElementById("book-now").disabled = true; // Disable button by default
+        function formatStartTime(time) {
+            var [hour, minute] = time.split(":").map(Number);
+            var amPm = hour >= 12 ? "PM" : "AM";
+            var formattedHour = hour % 12 || 12; 
+            return formattedHour + ":" + (minute < 10 ? "0" + minute : minute) + " " + amPm;
         }
 
         function formatEndTime(startTime) {
             var [hour, minute] = startTime.split(":").map(Number);
             var endHour = (hour + 1) % 24;
             var endAmPm = endHour >= 12 ? "PM" : "AM";
-            var endTimeFormatted = (endHour % 12 || 12) + ":" + (minute < 10 ? "0" + minute : minute) + " " + endAmPm;
+            
+            endHour = endHour % 12;
+            if (endHour === 0) endHour = 12; 
+            
+            var endTimeFormatted = endHour + ":" + (minute < 10 ? "0" + minute : minute) + " " + endAmPm;
             return endTimeFormatted;
         }
 
+        function validateStudentId() {
+            var studentId = document.getElementById("student-id").value;
+            var isValid = studentId.length === 8 && !isNaN(studentId) && validStudentIds.includes(studentId);
+            var studentIdError = document.getElementById("student-id-error");
+
+            if (!isValid) {
+                studentIdError.textContent = "Invalid Student ID. Please enter a valid 8-digit ID.";
+            } else {
+                studentIdError.textContent = "";
+            }
+
+            updateBookNowButtonState();
+        }
+
+        function updateBookNowButtonState() {
+            var studentId = document.getElementById("student-id").value;
+            var selectedTimeSlot = document.querySelector(".time-slot.selected");
+            var isStudentIdValid = studentId.length === 8 && !isNaN(studentId) && validStudentIds.includes(studentId);
+
+            document.getElementById("book-now").disabled = !(isStudentIdValid && selectedTimeSlot);
+        }
+
+        function updateAvailableTimes() {
+            var selectedCourt = document.getElementById("court-select").value;
+            var bookingDate = document.getElementById("booking-date").value;
+            var timeSlotContainer = document.getElementById("booking-time-container");
+            timeSlotContainer.innerHTML = ""; 
+
+            var courtError = document.getElementById("court-error");
+            var dateError = document.getElementById("date-error");
+
+            courtError.textContent = selectedCourt === "" ? "Please select a court." : "";
+            dateError.textContent = bookingDate === "" ? "Please select a booking date." : "";
+
+            if (selectedCourt === "" || bookingDate === "") return; 
+
+            var availableTimes = availabilityData[selectedCourt];
+
+            availableTimes.forEach(function(time) {
+                var timeSlot = document.createElement("div");
+                timeSlot.className = "time-slot";
+                timeSlot.textContent = formatStartTime(time) + " - " + formatEndTime(time);
+                timeSlot.dataset.time = time;
+                timeSlot.onclick = function() {
+                    var previouslySelected = document.querySelector(".time-slot.selected");
+                    if (previouslySelected) previouslySelected.classList.remove("selected");
+                    timeSlot.classList.add("selected");
+                    updateBookNowButtonState();
+                };
+                timeSlotContainer.appendChild(timeSlot);
+            });
+
+            updateBookNowButtonState(); 
+        }
+
         function bookCourt() {
+            var studentId = document.getElementById("student-id").value;
             var bookingDate = document.getElementById("booking-date").value;
             var selectedCourt = document.getElementById("court-select").value;
             var selectedTimeSlot = document.querySelector(".time-slot.selected");
+
+            if (studentId.length !== 8 || isNaN(studentId) || !validStudentIds.includes(studentId)) {
+                alert("Please enter a valid Student ID.");
+                return;
+            }
+
+            if (selectedCourt === "") {
+                alert("Please select a court.");
+                return;
+            }
+
+            if (bookingDate === "") {
+                alert("Please select a booking date.");
+                return;
+            }
 
             if (!selectedTimeSlot) {
                 alert("Please select a time slot for booking.");
@@ -206,16 +363,168 @@
 
             var bookingTime = selectedTimeSlot.dataset.time;
 
+            // Simulate adding the booking
+            if (!bookingData[studentId]) {
+                bookingData[studentId] = [];
+            }
+
+            bookingData[studentId].push({
+                court: selectedCourt,
+                date: bookingDate,
+                time: bookingTime
+            });
+
             var confirmationMessage = document.getElementById("booking-confirmation");
             var confirmedDate = document.getElementById("confirmed-date");
             var confirmedTime = document.getElementById("confirmed-time");
             var confirmedCourt = document.getElementById("confirmed-court");
 
             confirmedDate.textContent = bookingDate;
-            confirmedTime.textContent = bookingTime;
+            confirmedTime.textContent = formatStartTime(bookingTime) + " - " + formatEndTime(bookingTime);
             confirmedCourt.textContent = selectedCourt;
 
             confirmationMessage.style.display = "block";
+
+            // Reset form after booking
+            document.getElementById("student-id").value = "";
+            document.getElementById("court-select").selectedIndex = 0;
+            document.getElementById("booking-date").value = "";
+            timeSlotContainer.innerHTML = "";
+            updateBookNowButtonState(); 
+        }
+
+        function showMakeBooking() {
+            document.getElementById("make-booking").style.display = "block";
+            document.getElementById("manage-bookings").style.display = "none";
+            document.getElementById("booking-confirmation").style.display = "none";
+        }
+
+        function showManageBookings() {
+            document.getElementById("make-booking").style.display = "none";
+            document.getElementById("manage-bookings").style.display = "block";
+            document.getElementById("booking-confirmation").style.display = "none";
+        }
+
+        function fetchBookings() {
+            var studentId = document.getElementById("manage-student-id").value;
+            var bookingListContainer = document.getElementById("booking-list");
+            bookingListContainer.innerHTML = ""; 
+
+            var manageStudentIdError = document.getElementById("manage-student-id-error");
+            if (studentId.length !== 8 || isNaN(studentId)) {
+                manageStudentIdError.textContent = "Invalid Student ID. Please enter a valid 8-digit ID.";
+                return;
+            } else {
+                manageStudentIdError.textContent = "";
+            }
+
+            var bookings = bookingData[studentId] || [];
+
+            if (bookings.length === 0) {
+                bookingListContainer.innerHTML = "<p>No active bookings found for this Student ID.</p>";
+                return;
+            }
+
+            bookings.forEach(function(booking, index) {
+                var bookingItem = document.createElement("div");
+                bookingItem.className = "booking-item";
+
+                var bookingDetails = document.createElement("div");
+                bookingDetails.className = "booking-details";
+                bookingDetails.innerHTML = `<strong>Booking:</strong> ${booking.court} on ${booking.date} at ${formatStartTime(booking.time)} - ${formatEndTime(booking.time)}`;
+
+                var manageButtons = document.createElement("div");
+                manageButtons.className = "manage-buttons";
+
+                var modifyButton = document.createElement("button");
+                modifyButton.textContent = "Modify";
+                modifyButton.onclick = function() {
+                    modifyBooking(studentId, index);
+                };
+
+                var cancelButton = document.createElement("button");
+                cancelButton.textContent = "Cancel";
+                cancelButton.onclick = function() {
+                    // Display a confirmation dialog
+                    var userConfirmed = confirm("Are you sure you want to cancel this booking?");
+                    
+                    // If the user clicks "OK", proceed with cancellation
+                    if (userConfirmed) {
+                        cancelBooking(studentId, index);
+                    }
+                };
+
+                manageButtons.appendChild(modifyButton);
+                manageButtons.appendChild(cancelButton);
+
+                bookingItem.appendChild(bookingDetails);
+                bookingItem.appendChild(manageButtons);
+
+                bookingListContainer.appendChild(bookingItem);
+            });
+        }
+
+        function modifyBooking(studentId, bookingIndex) {
+            var booking = bookingData[studentId][bookingIndex];
+
+            // Set the form values to the existing booking details
+            document.getElementById("student-id").value = studentId;
+            document.getElementById("court-select").value = booking.court;
+            document.getElementById("booking-date").value = booking.date;
+
+            // Update available times based on the selected court and date
+            updateAvailableTimes();
+
+            // Select the existing time slot
+            var timeSlots = document.querySelectorAll(".time-slot");
+            timeSlots.forEach(function(timeSlot) {
+                if (timeSlot.dataset.time === booking.time) {
+                    timeSlot.classList.add("selected");
+                }
+            });
+
+            document.getElementById("make-booking").style.display = "block";
+            document.getElementById("manage-bookings").style.display = "none";
+
+            // Update the Book Now button to modify the booking
+            document.getElementById("book-now").onclick = function() {
+                var selectedTimeSlot = document.querySelector(".time-slot.selected");
+
+                if (!selectedTimeSlot) {
+                    alert("Please select a new time slot for booking.");
+                    return;
+                }
+
+                var newBookingTime = selectedTimeSlot.dataset.time;
+                bookingData[studentId][bookingIndex] = {
+                    court: document.getElementById("court-select").value,
+                    date: document.getElementById("booking-date").value,
+                    time: newBookingTime
+                };
+
+                var confirmationMessage = document.getElementById("booking-confirmation");
+                var confirmedDate = document.getElementById("confirmed-date");
+                var confirmedTime = document.getElementById("confirmed-time");
+                var confirmedCourt = document.getElementById("confirmed-court");
+
+                confirmedDate.textContent = document.getElementById("booking-date").value;
+                confirmedTime.textContent = formatStartTime(newBookingTime) + " - " + formatEndTime(newBookingTime);
+                confirmedCourt.textContent = document.getElementById("court-select").value;
+
+                confirmationMessage.style.display = "block";
+
+                // Reset form after modification
+                document.getElementById("student-id").value = "";
+                document.getElementById("court-select").selectedIndex = 0;
+                document.getElementById("booking-date").value = "";
+                document.getElementById("booking-time-container").innerHTML = "";
+                updateBookNowButtonState();
+            };
+        }
+
+        function cancelBooking(studentId, bookingIndex) {
+            bookingData[studentId].splice(bookingIndex, 1);
+            fetchBookings();
         }
 
         // Initialize with default court selection
