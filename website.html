@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tennis Court Booking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 800px; /* Adjusted width to accommodate image */
+            gap: 20px;
+        }
+
+        .form-container {
+            flex: 1;
+        }
+
+        h1, h3 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #555;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .time-slot-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .time-slot {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            text-align: center;
+            flex: 1 1 calc(33% - 20px); /* Adjust based on the number of slots per row */
+            box-sizing: border-box;
+        }
+
+        .time-slot.selected {
+            background-color: #007bff;
+            color: white;
+        }
+
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            background-color: #1206fc;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .booking-confirmation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e2f7e2;
+            border: 1px solid #28a745;
+            border-radius: 4px;
+            color: #155724;
+            display: none;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h1>Louisiana Tech Tennis Complex</h1>
+            <div class="image-container">
+                <img src="tenniscourts.png" alt="Tennis Court Image">
+            </div>
+            <h3>Tennis Court Booking</h3>
+
+
+            <label for="court-select">Select Court:</label>
+            <select id="court-select" onchange="updateAvailableTimes()">
+                <option value="Court 1">Court 1</option>
+                <option value="Court 2">Court 2</option>
+                <option value="Court 3">Court 3</option>
+                <option value="Court 4">Court 4</option>
+                <option value="Court 5">Court 5</option>
+                <option value="Court 6">Court 6</option>
+                <option value="Court 7">Court 7</option>
+                <option value="Court 8">Court 8</option>
+            </select>
+
+            <label for="booking-date">Select Date:</label>
+            <input type="date" id="booking-date" onchange="updateAvailableTimes()" required>
+
+            <div id="booking-time-container" class="time-slot-container">
+                <!-- Time slots will be populated here -->
+            </div>
+
+            <button id="book-now" onclick="bookCourt()">Book Now</button>
+
+            <div id="booking-confirmation" class="booking-confirmation">
+                <strong>Success!</strong> Your booking is confirmed for <span id="confirmed-court"></span> on <span id="confirmed-date"></span> at <span id="confirmed-time"></span>.
+            </div>
+        </div>
+
+        
+    </div>
+
+    <script>
+        // Simulated availability data
+        var availabilityData = {
+            "Court 1": ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"],
+            "Court 2": ["09:00", "11:00", "13:00", "15:00", "17:00"],
+            "Court 3": ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00"],
+            "Court 4": ["12:00", "14:00", "16:00", "18:00", "19:00"],
+            "Court 5": ["10:00", "11:00", "13:00", "15:00", "17:00"],
+            "Court 6": ["08:00", "10:00", "12:00", "14:00", "16:00"],
+            "Court 7": ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00"],
+            "Court 8": ["08:00", "09:00", "11:00", "13:00", "15:00", "17:00"]
+        };
+
+        function updateAvailableTimes() {
+            var selectedCourt = document.getElementById("court-select").value;
+            var bookingDate = document.getElementById("booking-date").value;
+            var timeSlotContainer = document.getElementById("booking-time-container");
+            timeSlotContainer.innerHTML = ""; // Clear previous options
+
+            if (bookingDate === "") return; // Do nothing if date is not selected
+
+            var availableTimes = availabilityData[selectedCourt];
+
+            availableTimes.forEach(function(time) {
+                var timeSlot = document.createElement("div");
+                timeSlot.className = "time-slot";
+                timeSlot.textContent = time + " - " + formatEndTime(time);
+                timeSlot.dataset.time = time;
+                timeSlot.onclick = function() {
+                    var previouslySelected = document.querySelector(".time-slot.selected");
+                    if (previouslySelected) previouslySelected.classList.remove("selected");
+                    timeSlot.classList.add("selected");
+                    document.getElementById("book-now").disabled = false;
+                };
+                timeSlotContainer.appendChild(timeSlot);
+            });
+
+            document.getElementById("book-now").disabled = true; // Disable button by default
+        }
+
+        function formatEndTime(startTime) {
+            var [hour, minute] = startTime.split(":").map(Number);
+            var endHour = (hour + 1) % 24;
+            var endAmPm = endHour >= 12 ? "PM" : "AM";
+            var endTimeFormatted = (endHour % 12 || 12) + ":" + (minute < 10 ? "0" + minute : minute) + " " + endAmPm;
+            return endTimeFormatted;
+        }
+
+        function bookCourt() {
+            var bookingDate = document.getElementById("booking-date").value;
+            var selectedCourt = document.getElementById("court-select").value;
+            var selectedTimeSlot = document.querySelector(".time-slot.selected");
+
+            if (!selectedTimeSlot) {
+                alert("Please select a time slot for booking.");
+                return;
+            }
+
+            var bookingTime = selectedTimeSlot.dataset.time;
+
+            var confirmationMessage = document.getElementById("booking-confirmation");
+            var confirmedDate = document.getElementById("confirmed-date");
+            var confirmedTime = document.getElementById("confirmed-time");
+            var confirmedCourt = document.getElementById("confirmed-court");
+
+            confirmedDate.textContent = bookingDate;
+            confirmedTime.textContent = bookingTime;
+            confirmedCourt.textContent = selectedCourt;
+
+            confirmationMessage.style.display = "block";
+        }
+
+        // Initialize with default court selection
+        updateAvailableTimes();
+    </script>
+</body>
+</html>
